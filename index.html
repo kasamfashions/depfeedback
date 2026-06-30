@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kasam Store Feedback</title>
+  <link rel="icon" type="image/png"
+    href="https://raw.githubusercontent.com/kasamfashions/Kasamfeedback/2f0b8e0d7cd18cafa3aec383b55d6d884258d293/Feedback.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    h1,
+    h2,
+    h3,
+    .serif-font {
+      font-family: 'Playfair Display', serif;
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+
+      100% {
+        transform: translateY(0px);
+      }
+    }
+
+    .animate-blob {
+      animation: blob 7s infinite;
+    }
+
+    @keyframes blob {
+      0% {
+        transform: translate(0px, 0px) scale(1);
+      }
+
+      33% {
+        transform: translate(30px, -50px) scale(1.1);
+      }
+
+      66% {
+        transform: translate(-20px, 20px) scale(0.9);
+      }
+
+      100% {
+        transform: translate(0px, 0px) scale(1);
+      }
+    }
+
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+
+    .animation-delay-4000 {
+      animation-delay: 4s;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.1/client",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/"
+  }
+}
+</script>
+</head>
+
+<body class="bg-blue-50 text-gray-900">
+  <div id="root"></div>
+
+  <script type="text/babel" data-type="module">
+    import React, { useState, useEffect, useMemo, useRef } from 'react';
+    import ReactDOM from 'react-dom/client';
+    import {
+      Loader2, ShoppingBag, ArrowRight, Lock, User, ChevronDown,
+      CheckCircle2, LayoutDashboard, MessageSquare, FileText,
+      Settings, LogOut, RefreshCw, BarChart3, Trash2, Download, X,
+      Phone, Star, Calendar, Menu, Sparkles, Heart, Gem, FileDown, Image
+    } from 'lucide-react';
+    import { GoogleGenAI } from "@google/genai";
+
+    // --- CONSTANTS ---
+    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxskdKiMXAko7SERFgrZ-4fTFUoNK9bVplIQmIwdk6tD2fHJGdhZUNz7SrSQAUy3V2W/exec';
+
+    const DEPARTMENT_OPTIONS = [
+      {
+        id: 'sarees',
+        label: 'Sarees',
+        image: './images/sarees_store_1782815674610.png',
+        colorClass: 'from-pink-500 to-rose-500'
+      },
+      {
+        id: 'kids',
+        label: 'Kids',
+        image: './images/kids_store_1782815686657.png',
+        colorClass: 'from-purple-500 to-violet-500'
+      },
+      {
+        id: 'mens',
+        label: 'Mens',
+        image: './images/mens_store_1782815698427.png',
+        colorClass: 'from-blue-500 to-cyan-500'
+      },
+      {
+        id: 'textile',
+        label: 'Textile',
+        image: './images/textile_store_1782815710410.png',
+        colorClass: 'from-amber-500 to-orange-500'
+      },
+      {
+        id: 'ladies_wear',
+        label: 'Ladies Wear',
+        image: './images/ladies_store_1782815721396.png',
+        colorClass: 'from-red-500 to-pink-600'
+      }
+    ];
+
+    const SPECIFIC_QUESTIONS = [
+      { id: 'q1', text: 'How would you rate the product quality?' },
+      { id: 'q2', text: 'How would you rate the variety of options available?' },
+      { id: 'q3', text: 'How would you rate the pricing?' },
+      { id: 'q4', text: 'How would you rate the staff assistance/customer service?' },
+      { id: 'q5', text: 'How would you rate the store ambience and cleanliness?' }
+    ];
+
+    const RATING_OPTIONS = [
+      { value: 1, emoji: '😠', label: 'Very Dissatisfied' },
+      { value: 2, emoji: '☹️', label: 'Dissatisfied' },
+      { value: 3, emoji: '😐', label: 'Neutral' },
+      { value: 4, emoji: '🙂', label: 'Satisfied' },
+      { value: 5, emoji: '😍', label: 'Very Satisfied' },
+    ];
+
+
+    // --- SERVICES ---
+
+    // 1. Location Service (Replaced Firebase with Google Sheets)
+    const useLocations = () => {
+      const [locations, setLocations] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const isFetchingRef = useRef(false);
+
+      const refreshLocations = async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        setLoading(true);
+
+        try {
+          // Fetch with specific action for locations
+          const response = await fetch(`${GOOGLE_SHEET_URL}?action=getLocations`, { method: 'GET', redirect: 'follow' });
+          if (!response.ok) throw new Error("Network response was not ok");
+          const data = await response.json();
+
+          if (Array.isArray(data)) {
+            // Ensure data format is {id, name}
+            const formatted = data.map(d => ({
+              id: d.id || d.name || Math.random().toString(36).substr(2, 9),
+              name: d.name || d
+            }));
+            const sorted = formatted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            setLocations(sorted);
+            // localStorage Removed
+          }
+        } catch (e) {
+          console.error("Error fetching locations from Sheets", e);
+          // Fallback removed - we want Sheets data only
+        } finally {
+          setLoading(false);
+          isFetchingRef.current = false;
+        }
+      };
+
+      // Initialize: Fetch directly from Sheet
+      useEffect(() => {
+        refreshLocations();
+      }, []);
+
+      const addLocation = async (name) => {
+        try {
+          const newId = 'loc_' + Date.now();
+          const newLocation = { id: newId, name };
+
+          // Optimistic Update
+          const updatedLocations = [...locations, newLocation].sort((a, b) => a.name.localeCompare(b.name));
+          setLocations(updatedLocations);
+          // localStorage Removed
+
+          // Sync with Sheet
+          await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'addLocation', id: newId, name })
+          });
+        } catch (e) { console.error("Error adding location", e); }
+      };
+
+      const deleteLocation = async (id) => {
+        try {
+          // Optimistic Update
+          const updatedLocs = locations.filter(l => l.id !== id);
+          setLocations(updatedLocs);
+          // localStorage Removed
+
+          // Sync with Sheet
+          await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'deleteLocation', id })
+          });
+        } catch (e) { console.error("Error deleting location", e); }
+      };
+
+      return { locations, loading, addLocation, deleteLocation, refreshLocations };
+    };
+
+    // 2. Sheets Service (Feedback & Admin Data)
+    const saveToGoogleSheet = async (data) => {
+      try {
+        await fetch(GOOGLE_SHEET_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'submitFeedback', ...data }), // Added action
+        });
+        return true;
+      } catch (error) {
+        console.error("Sheet sync failed", error);
+        return false;
+      }
+    };
+
+    const fetchFromGoogleSheet = async () => {
+      try {
+        // Added action to distinguish from getLocations
+        const url = `${GOOGLE_SHEET_URL}?action=getSubmissions&v=${Date.now()}`;
+        const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Failed to fetch from sheets.", error);
+        return [];
+      }
+    };
+
+    // 3. AI Service
+    const generateThankYouMessage = async (sourceLabel) => {
+      let apiKey = '';
+      try { if (typeof process !== 'undefined' && process.env) apiKey = process.env.API_KEY; } catch (e) { }
+      if (!apiKey) return "Thank you! Your style is amazing.";
+      const ai = new GoogleGenAI({ apiKey });
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `Generate a short, warm, and elegant store-themed thank you message (max 15 words) for a customer who visited our store via "${sourceLabel}".`,
+        });
+        return response.text.trim();
+      } catch (error) {
+        return "Thank you so much! Your visit made our store shine.";
+      }
+    };
+
+    // 4. CSV Utils
+    const downloadCSV = (data) => {
+      if (!data || !data.length) return;
+      const headers = ["Date", "Time", "Customer Name", "Phone", "Location", "Department", "Overall Rating", "Q1 Quality", "Q2 Variety", "Q3 Pricing", "Q4 Service", "Q5 Ambience"];
+      const csvContent = [
+        headers.join(","),
+        ...data.map(row => {
+          const d = new Date(row.timestamp);
+          return [
+            d.toLocaleDateString(),
+            d.toLocaleTimeString(),
+            `"${row.customerName || ''}"`,
+            `"${row.phoneNumber || ''}"`,
+            `"${row.locationName || ''}"`,
+            `"${row.sourceLabel || ''}"`,
+            row.rating || '',
+            row.q1 || '',
+            row.q2 || '',
+            row.q3 || '',
+            row.q4 || '',
+            row.q5 || ''
+          ].join(",");
+        })
+      ].join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `kasam_feedback_export_${Date.now()}.csv`);
+      link.click();
+    };
+
+    // --- COMPONENTS ---
+
+    // Logo
+    const Logo = ({ className }) => (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <div className="bg-white/90 p-1.5 rounded-lg shadow-sm">
+          <img src="https://raw.githubusercontent.com/kasamfashions/Kasamfeedback/afb9ef3d41588301e6a15396d858b92cbdcbf887/LOGO(2)%20(2).png" alt="KASAM FASHIONS Logo" className="h-8 w-8 object-contain" />
+        </div>
+        <div>
+          <h2 className="font-bold text-lg serif-font text-gray-900 drop-shadow-md tracking-wide">KASAM FASHIONS</h2>
+        </div>
+      </div>
+    );
+
+    // Background - Single Static Image
+    const Background = () => {
+      return (
+        <div className="fixed inset-0 z-0 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url("https://images.unsplash.com/photo-1521334884684-d80222895322?q=80&w=2070&auto=format&fit=crop")` }}
+          />
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-[3px]"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-50/60 via-white/40 to-pink-50/60 mix-blend-overlay"></div>
+        </div>
+      );
+    };
+
+    // OptionCard
+    const OptionCard = ({ option, isSelected, onClick }) => {
+      return (
+        <button
+          onClick={onClick}
+          className={`
+              relative group overflow-hidden rounded-2xl transition-all duration-300 ease-out
+              flex flex-col items-center justify-start text-center h-full w-full
+              border-2 shadow-sm
+              ${isSelected
+              ? 'border-transparent shadow-xl ring-2 ring-pink-500 scale-[1.02]'
+              : 'border-white/50 hover:border-white hover:shadow-lg hover:-translate-y-1 bg-white/40'
+            }
+            `}
+        >
+          <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100 relative">
+            <img
+              src={option.image}
+              alt={option.label}
+              className={`
+                  w-full h-full object-cover transition-transform duration-700
+                  ${isSelected ? 'scale-110' : 'group-hover:scale-110'}
+                `}
+              loading="lazy"
+            />
+            <div className={`absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-300 ${isSelected ? 'bg-black/20' : ''}`} />
+            {isSelected && (
+              <div className="absolute top-3 right-3 z-10 bg-white text-pink-600 rounded-full p-1 shadow-md animate-bounce">
+                <CheckCircle2 size={20} fill="currentColor" className="text-white" />
+              </div>
+            )}
+          </div>
+          <div className={`
+              w-full p-3 flex flex-col items-center justify-center flex-1 bg-white/80 backdrop-blur-md
+              transition-colors duration-300
+              ${isSelected ? 'bg-pink-50' : ''}
+            `}>
+            <span className={`
+                font-bold text-xs md:text-sm leading-tight break-words max-w-full
+                ${isSelected ? 'text-pink-700' : 'text-gray-800'}
+              `}>
+              {option.label}
+            </span>
+          </div>
+        </button>
+      );
+    };
+
+    // AdminPanel
+    const AdminPanel = ({ isAuthenticated, setIsAuthenticated, setViewMode, locations, addLocation, deleteLocation, refreshLocations }) => {
+      const [adminPassword, setAdminPassword] = useState('');
+      const [adminTab, setAdminTab] = useState('dashboard');
+      const [submissions, setSubmissions] = useState([]);
+      const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+      const [newLocationName, setNewLocationName] = useState('');
+      const [dashboardFilter, setDashboardFilter] = useState('all');
+      const [reportStart, setReportStart] = useState('');
+      const [reportEnd, setReportEnd] = useState('');
+
+      const [feedbackSearch, setFeedbackSearch] = useState('');
+      const [feedbackRatingFilter, setFeedbackRatingFilter] = useState('all');
+      const [currentPage, setCurrentPage] = useState(1);
+      const itemsPerPage = 10;
+      const [showAllSources, setShowAllSources] = useState(false);
+      const [showAllLocations, setShowAllLocations] = useState(false);
+      const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+      // Added: Date Filtering for Dashboard
+      const [dashboardStartDate, setDashboardStartDate] = useState('');
+      const [dashboardEndDate, setDashboardEndDate] = useState('');
+
+      // NEW: Mobile Menu State
+      const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+      const [showLocationDetails, setShowLocationDetails] = useState(false);
+      const [showAllStores, setShowAllStores] = useState(false);
+
+      const loadAdminData = async () => {
+        setIsLoadingSubmissions(true);
+        const data = await fetchFromGoogleSheet();
+        setSubmissions(data);
+        setIsLoadingSubmissions(false);
+      };
+
+      useEffect(() => {
+        if (isAuthenticated) loadAdminData();
+      }, [isAuthenticated]);
+
+      const handleAdminLogin = () => {
+        if (adminPassword === '123456') {
+          setIsAuthenticated(true);
+          setAdminPassword('');
+        } else {
+          alert("Incorrect password");
+        }
+      };
+
+      const handleSoftDelete = (id) => {
+        if (window.confirm("This will remove the entry from your view temporarily, but IT WILL REMAIN in your Google Sheet.")) {
+          setSubmissions(prev => prev.filter(s => s.id !== id));
+        }
+      };
+
+      const handleDownloadPDF = async () => {
+        setIsExportingPDF(true);
+        setTimeout(async () => {
+          const element = document.getElementById('dashboard-content');
+          const opt = {
+            margin: [5, 5, 5, 5],
+            filename: `kasam_dashboard_${new Date().toLocaleDateString()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 1.5, // Reduced scale for better fitting
+              useCORS: true,
+              logging: false,
+              width: element.scrollWidth, // Capture full width
+              windowWidth: element.scrollWidth
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true }
+          };
+
+          try {
+            // Force temporary styling for PDF to fit one page if possible
+            const originalStyle = element.style.cssText;
+            element.style.width = "100%"; // Squeeze to container
+
+            await html2pdf().set(opt).from(element).save();
+
+            element.style.cssText = originalStyle;
+          } catch (err) {
+            console.error("PDF Export failed", err);
+          } finally {
+            setIsExportingPDF(false);
+          }
+        }, 800);
+      };
+
+      const dateFilteredSubmissions = useMemo(() => {
+        let filtered = submissions;
+
+        // Filter by Date Range (Base filter for all charts)
+        if (dashboardStartDate) {
+          const startTimestamp = new Date(dashboardStartDate).setHours(0, 0, 0, 0);
+          filtered = filtered.filter(s => new Date(s.timestamp).getTime() >= startTimestamp);
+        }
+        if (dashboardEndDate) {
+          const endTimestamp = new Date(dashboardEndDate).setHours(23, 59, 59, 999);
+          filtered = filtered.filter(s => new Date(s.timestamp).getTime() <= endTimestamp);
+        }
+        return filtered;
+      }, [submissions, dashboardStartDate, dashboardEndDate]);
+
+      const filteredSubmissions = useMemo(() => {
+        let filtered = dateFilteredSubmissions;
+
+        // 1. Filter by Location (Global dashboard filter)
+        if (dashboardFilter !== 'all') {
+          filtered = filtered.filter(s => s.locationId === dashboardFilter);
+        }
+
+        // 2. Filter by Search Query (Name or Phone)
+        if (feedbackSearch) {
+          const q = feedbackSearch.toLowerCase();
+          filtered = filtered.filter(s =>
+            (s.customerName && s.customerName.toLowerCase().includes(q)) ||
+            (s.phoneNumber && s.phoneNumber.includes(q))
+          );
+        }
+
+        // 3. Filter by Rating
+        if (feedbackRatingFilter !== 'all') {
+          filtered = filtered.filter(s => parseInt(s.rating) === parseInt(feedbackRatingFilter));
+        }
+
+        return filtered;
+      }, [dateFilteredSubmissions, dashboardFilter, feedbackSearch, feedbackRatingFilter]);
+
+      const paginatedSubmissions = useMemo(() => {
+        // Filter specifically for "Others" with actual comments as requested
+        const onlyOthersWithComments = filteredSubmissions.filter(sub =>
+          (sub.sourceId === 'other' || (sub.sourceLabel && sub.sourceLabel.startsWith('Other:'))) &&
+          (sub.otherDetails && sub.otherDetails.trim() !== '')
+        );
+
+        if (isExportingPDF) return onlyOthersWithComments.slice(0, 10); // Limit to top 10 to fit one page summary
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return onlyOthersWithComments.slice(startIndex, startIndex + itemsPerPage);
+      }, [filteredSubmissions, currentPage, isExportingPDF]);
+
+      const totalOthersCount = useMemo(() => {
+        return filteredSubmissions.filter(sub =>
+          (sub.sourceId === 'other' || (sub.sourceLabel && sub.sourceLabel.startsWith('Other:'))) &&
+          (sub.otherDetails && sub.otherDetails.trim() !== '')
+        ).length;
+      }, [filteredSubmissions]);
+
+      const totalPages = Math.ceil(totalOthersCount / itemsPerPage);
+
+      const stats = useMemo(() => {
+        const s = {};
+        filteredSubmissions.forEach(sub => {
+          const label = (sub.sourceId === 'other' || (sub.sourceLabel && sub.sourceLabel.startsWith('Other:'))) ? 'Others' : sub.sourceLabel;
+          s[label] = (s[label] || 0) + 1;
+        });
+        return Object.entries(s).sort((a, b) => b[1] - a[1]);
+      }, [filteredSubmissions]);
+
+      const locationStats = useMemo(() => {
+        const locs = {};
+        dateFilteredSubmissions.forEach(sub => {
+          const locId = sub.locationId || 'unknown';
+          const locName = sub.locationName || 'Unknown';
+          const source = (sub.sourceId === 'other' || (sub.sourceLabel && sub.sourceLabel.startsWith('Other:'))) ? 'Others' : sub.sourceLabel;
+
+          if (!locs[locId]) {
+            locs[locId] = { id: locId, name: locName, count: 0, sources: {} };
+          }
+          locs[locId].count++;
+          locs[locId].sources[source] = (locs[locId].sources[source] || 0) + 1;
+        });
+
+        return Object.values(locs).map(data => {
+          const sortedSources = Object.entries(data.sources).sort((a, b) => b[1] - a[1]);
+          const topSource = sortedSources[0];
+          return {
+            id: data.id,
+            name: data.name,
+            total: data.count,
+            topSource: topSource ? topSource[0] : '-',
+            topSourceCount: topSource ? topSource[1] : 0,
+            allSources: sortedSources
+          };
+        }).sort((a, b) => b.total - a.total);
+      }, [dateFilteredSubmissions]);
+
+      const formatDateRange = () => {
+        if (!dashboardStartDate && !dashboardEndDate) return "Overall";
+
+        const format = (dateStr) => {
+          if (!dateStr) return '';
+          const d = new Date(dateStr);
+          const day = d.getDate();
+          const month = d.toLocaleString('en-IN', { month: 'short' });
+          const year = d.getFullYear().toString().slice(-2);
+
+          const suffix = (n) => {
+            if (n > 3 && n < 21) return 'th';
+            switch (n % 10) {
+              case 1: return "st";
+              case 2: return "nd";
+              case 3: return "rd";
+              default: return "th";
+            }
+          };
+
+          return `${day}${suffix(day)} ${month}-${year}`;
+        };
+
+        const start = format(dashboardStartDate);
+        const end = format(dashboardEndDate);
+
+        if (start && end) return `${start} to ${end}`;
+        return start || end;
+      };
+
+      const handleDownloadLocationStatsPDF = async () => {
+        setIsExportingPDF(true);
+        setTimeout(async () => {
+          const element = document.getElementById('location-wise-card');
+          const opt = {
+            margin: [10, 5, 10, 5],
+            filename: `kasam_location_stats_${new Date().toLocaleDateString()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              letterRendering: true
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+          };
+          try {
+            await html2pdf().set(opt).from(element).save();
+          } catch (err) {
+            console.error("Location PDF Export failed", err);
+          } finally {
+            setIsExportingPDF(false);
+          }
+        }, 800);
+      };
+
+      const handleDownloadStoreStatsPDF = async () => {
+        setIsExportingPDF(true);
+        setTimeout(async () => {
+          const element = document.getElementById('store-summary-card');
+          const opt = {
+            margin: [5, 5, 5, 5],
+            filename: `kasam_store_summary_${new Date().toLocaleDateString()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              width: element.scrollWidth
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+          try {
+            await html2pdf().set(opt).from(element).save();
+          } catch (err) {
+            console.error("Store PDF Export failed", err);
+          } finally {
+            setIsExportingPDF(false);
+          }
+        }, 800);
+      };
+
+      const handleDownloadStoreStatsImage = async () => {
+        setIsExportingPDF(true);
+        setTimeout(async () => {
+          const element = document.getElementById('store-summary-card');
+          try {
+            const canvas = await html2canvas(element, {
+              scale: 3,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+              logging: false,
+              onclone: (clonedDoc) => {
+                const el = clonedDoc.getElementById('store-summary-card');
+                // Ensure the cloned element has enough room and correct layout
+                el.style.width = '480px';
+                el.style.height = 'auto';
+                el.style.padding = '20px'; // Add padding to avoid clipping
+                el.style.margin = '0';
+                el.style.boxShadow = 'none';
+                el.style.borderRadius = '0';
+
+                // Ensure table rows don't get squashed
+                const rows = el.querySelectorAll('tr');
+                rows.forEach(row => {
+                  row.style.height = 'auto';
+                });
+              }
+            });
+            const link = document.createElement('a');
+            link.download = `kasam_store_summary_${new Date().toLocaleDateString()}.jpg`;
+            link.href = canvas.toDataURL("image/jpeg", 0.98);
+            link.click();
+          } catch (err) {
+            console.error("Image Export failed", err);
+          } finally {
+            setIsExportingPDF(false);
+          }
+        }, 800);
+      };
+      const ratingStats = useMemo(() => {
+        const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        let sum = 0;
+        let totalWithRating = 0;
+        let minDate = Infinity;
+        let maxDate = -Infinity;
+
+        filteredSubmissions.forEach(sub => {
+          const r = parseInt(sub.rating);
+          const ts = new Date(sub.timestamp).getTime();
+          if (ts < minDate) minDate = ts;
+          if (ts > maxDate) maxDate = ts;
+
+          if (r >= 1 && r <= 5) {
+            counts[r] = (counts[r] || 0) + 1;
+            sum += r;
+            totalWithRating++;
+          }
+        });
+
+        const average = totalWithRating > 0 ? (sum / totalWithRating).toFixed(1) : "0.0";
+
+        // Calculate Days for Global Average
+        let days = 1;
+        if (dashboardStartDate && dashboardEndDate) {
+          const start = new Date(dashboardStartDate).getTime();
+          const end = new Date(dashboardEndDate).getTime();
+          days = Math.max(1, Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1);
+        } else if (minDate !== Infinity && maxDate !== -Infinity) {
+          const diffTime = Math.abs(maxDate - minDate);
+          days = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        }
+
+        const totalAvgPerDay = Math.round(totalWithRating / days);
+
+        return { counts, average, totalWithRating, totalAvgPerDay };
+      }, [filteredSubmissions, dashboardStartDate, dashboardEndDate]);
+
+      // NEW: Store Feedback Analysis Logic
+      const storeFeedbackStats = useMemo(() => {
+        const storeMap = {};
+        let minDate = Infinity;
+        let maxDate = -Infinity;
+
+        dateFilteredSubmissions.forEach(sub => {
+          const name = sub.locationName || 'Unknown';
+          const ts = new Date(sub.timestamp).getTime();
+          if (ts < minDate) minDate = ts;
+          if (ts > maxDate) maxDate = ts;
+
+          if (!storeMap[name]) storeMap[name] = 0;
+          storeMap[name]++;
+        });
+
+        let days = 1;
+        if (dashboardStartDate && dashboardEndDate) {
+          const start = new Date(dashboardStartDate).getTime();
+          const end = new Date(dashboardEndDate).getTime();
+          days = Math.max(1, Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1);
+        } else if (minDate !== Infinity && maxDate !== -Infinity) {
+          const diffTime = Math.abs(maxDate - minDate);
+          days = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        }
+
+        return Object.entries(storeMap).map(([name, count]) => ({
+          name,
+          count,
+          avg: Math.round(count / days)
+        })).sort((a, b) => b.count - a.count);
+      }, [dateFilteredSubmissions, dashboardStartDate, dashboardEndDate]);
+
+      if (!isAuthenticated) {
+        return (
+          <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
+            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+              <div className="w-16 h-16 bg-gray-900 text-white rounded-full flex items-center justify-center mx-auto mb-6">
+                <Settings size={32} />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Admin Portal</h2>
+              <p className="text-gray-500 mb-6">Access dashboard and reports</p>
+              <input
+                type="password" value={adminPassword} onChange={e => setAdminPassword(e.target.value)}
+                placeholder="Enter Password" className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 mb-4 text-center focus:border-black outline-none transition-colors"
+                onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
+              />
+              <div className="flex gap-3">
+                <button onClick={() => setViewMode('user')} className="flex-1 py-3 text-gray-500 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onClick={handleAdminLogin} className="flex-1 py-3 bg-black text-white rounded-lg hover:bg-gray-800">Login</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-blue-50 flex flex-col md:flex-row font-sans text-gray-800">
+
+          {/* Mobile Header */}
+          <div className="md:hidden bg-white p-4 border-b flex items-center justify-between sticky top-0 z-30 shadow-sm">
+            <Logo />
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+
+          {/* Mobile Overlay */}
+          {isMobileMenuOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 md:hidden animate-fadeIn"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+          )}
+
+          {/* Sidebar Navigation */}
+          <aside className={`
+                fixed inset-y-0 left-0 z-50 w-64 bg-white border-r shadow-2xl transform transition-transform duration-300 ease-in-out
+                md:translate-x-0 md:static md:h-screen md:shadow-sm md:z-10 flex flex-col
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+            <div className="p-6 border-b flex items-center justify-between">
+              <Logo />
+              {/* Close button inside drawer for mobile */}
+              <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
+            </div>
+            <nav className="p-4 space-y-2 flex-1">
+              {[
+                { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+                { id: 'reports', label: 'Reports', icon: FileText },
+                { id: 'settings', label: 'Settings', icon: Settings },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => { setAdminTab(tab.id); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${adminTab === tab.id ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <tab.icon size={18} /> {tab.label}
+                </button>
+              ))}
+            </nav>
+            <div className="p-4 border-t bg-gray-50">
+              <button
+                onClick={() => { setIsAuthenticated(false); setViewMode('user'); }}
+                className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
+              >
+                <LogOut size={16} /> Logout
+              </button>
+            </div>
+          </aside>
+
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 h-[calc(100vh-73px)] md:h-screen">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+              <div><h2 className="text-2xl font-bold capitalize">{adminTab}</h2><p className="text-gray-500 text-sm">Real-time data from Database</p></div>
+              {adminTab !== 'settings' && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Date Filters - Only for Dashboard and Feedbacks */}
+                  {(adminTab === 'dashboard' || adminTab === 'feedbacks') && (
+                    <div className="flex items-center gap-2 bg-white border rounded-lg p-2 shadow-sm mr-2">
+                      <div className="flex items-center gap-2 border-r pr-2 border-gray-200">
+                        <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"> From</span>
+                        <input type="date" value={dashboardStartDate} onChange={e => setDashboardStartDate(e.target.value)} className="text-xs md:text-sm outline-none bg-transparent text-gray-700" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">To</span>
+                        <input type="date" value={dashboardEndDate} onChange={e => setDashboardEndDate(e.target.value)} className="text-xs md:text-sm outline-none bg-transparent text-gray-700" />
+                      </div>
+                      {(dashboardStartDate || dashboardEndDate) && (
+                        <button onClick={() => { setDashboardStartDate(''); setDashboardEndDate(''); }} className="text-gray-400 hover:text-red-500 ml-1" title="Clear Dates"><X size={14} /></button>
+                      )}
+                    </div>
+                  )}
+
+                  <button onClick={() => { loadAdminData(); refreshLocations(); }} className="p-2 bg-white border rounded-lg hover:bg-gray-50 text-gray-600" title="Refresh Data & Locations"><RefreshCw size={20} className={isLoadingSubmissions ? 'animate-spin' : ''} /></button>
+                  <select value={dashboardFilter} onChange={e => setDashboardFilter(e.target.value)} className="bg-white border rounded-lg px-4 py-2 shadow-sm text-sm outline-none focus:ring-1 focus:ring-black">
+                    <option value="all">All Locations</option>
+                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+
+                  {adminTab === 'dashboard' && (
+                    <button
+                      onClick={handleDownloadPDF}
+                      disabled={isExportingPDF}
+                      className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors shadow-lg disabled:opacity-50"
+                      title="Download PDF Report"
+                    >
+                      {isExportingPDF ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
+                      <span className="hidden sm:inline font-bold text-sm">PDF</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {isLoadingSubmissions && adminTab !== 'settings' ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" size={40} /></div> : (
+              <div id="dashboard-content" className={isExportingPDF ? "p-4 bg-blue-50" : ""}>
+                {adminTab === 'dashboard' && (
+                  <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn">
+                    {/* Top Summary Row - Modified to include Average Rating & Avg/Day */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+                        <p className="text-sm text-gray-500 mb-1">Total Submissions</p>
+                        <p className="text-4xl font-bold">{filteredSubmissions.length.toLocaleString('en-IN')}</p>
+                      </div>
+
+                      {/* New Average Rating Card */}
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+                        <p className="text-sm text-gray-500 mb-1">Average Rating</p>
+                        <div className="flex items-end gap-2 justify-center text-yellow-500">
+                          <p className="text-4xl font-bold">{ratingStats.average}</p>
+                          <div className="flex pb-2">
+                            <Star size={16} fill="currentColor" />
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">{ratingStats.totalWithRating.toLocaleString('en-IN')} reviews</p>
+                      </div>
+
+                      {/* New Average Per Day KPI */}
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+                        <p className="text-sm text-gray-500 mb-1">Avg Ratings /Day</p>
+                        <div className="flex items-end gap-2 justify-center text-blue-600">
+                          <p className="text-4xl font-bold">{ratingStats.totalAvgPerDay}</p>
+                          <div className="pb-2">
+                            <Calendar size={16} />
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">Daily trend</p>
+                      </div>
+
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+                        <p className="text-sm text-gray-500 mb-1">Top Source</p>
+                        <p className="text-2xl font-bold text-pink-600 break-words">{stats.length > 0 ? stats[0][0] : '-'}</p>
+                      </div>
+
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+                        <p className="text-sm text-gray-500 mb-1">Latest Feedback</p>
+                        <p className="text-2xl font-bold text-pink-600 break-words">{filteredSubmissions[0] ? new Date(filteredSubmissions[0].timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    {/* Middle Row: Sources & Rating Stats & Store Analysis */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                        <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><BarChart3 size={20} /> Department Breakdown</h3>
+                        <div className="space-y-4">
+                          {(showAllSources || isExportingPDF ? stats : stats.slice(0, 5)).map(([label, count]) => (
+                            <div key={label}>
+                              <div className="flex justify-between text-sm mb-2 font-medium">
+                                <span>{label}</span>
+                                <span className="text-gray-600">{count.toLocaleString('en-IN')} ({Math.round((count / filteredSubmissions.length) * 100)}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2">
+                                <div className="bg-gradient-to-r from-pink-500 to-purple-600 h-2 rounded-full" style={{ width: `${(count / filteredSubmissions.length) * 100}%` }}></div>
+                              </div>
+                            </div>
+                          ))}
+                          {stats.length > 5 && !isExportingPDF && (
+                            <button
+                              onClick={() => setShowAllSources(!showAllSources)}
+                              className="w-full py-2 mt-4 text-sm font-bold text-pink-600 hover:bg-pink-50 rounded-lg transition-colors border border-pink-100"
+                            >
+                              {showAllSources ? 'See Less' : `See All (${stats.length})`}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* New Rating Distribution Card */}
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                        <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Star size={20} className="text-yellow-500" /> Rating Points Summary</h3>
+                        <div className="space-y-4 flex-1">
+                          {[5, 4, 3, 2, 1].map(star => {
+                            const count = ratingStats.counts[star];
+                            const percentage = ratingStats.totalWithRating > 0 ? (count / ratingStats.totalWithRating) * 100 : 0;
+                            return (
+                              <div key={star} className="flex items-center gap-3 text-sm">
+                                <div className="flex items-center gap-1 w-12 font-medium text-gray-600">
+                                  {star} <Star size={12} fill="currentColor" className="text-yellow-500" />
+                                </div>
+                                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-yellow-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                                <div className="w-12 text-right text-gray-500">{count.toLocaleString('en-IN')}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-6 pt-6 border-t text-center text-gray-400 text-sm">
+                          Total Rated Reviews: {ratingStats.totalWithRating.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+
+                      {/* Store-wise Feedback Report (Beside Rating Points Summary) */}
+                      <div id="store-summary-card" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col xl:col-span-1 md:col-span-2 xl:h-auto">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-bold flex items-center gap-3">
+                            <LayoutDashboard size={24} className="text-amber-500 shrink-0" />
+                            <div className="flex flex-col gap-1">
+                              <span className="text-base text-gray-900 leading-tight">Store Feedback Summary</span>
+                              <span className="text-[9px] text-gray-400 font-normal uppercase tracking-tight font-sans leading-none">{formatDateRange()}</span>
+                            </div>
+                          </h3>
+                          {!isExportingPDF && (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={handleDownloadStoreStatsImage}
+                                className="p-1 px-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all flex items-center gap-1 border border-gray-100 shadow-sm"
+                                title="Download Store Image"
+                              >
+                                <Image size={14} />
+                                <span className="text-[10px] font-bold"></span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 overflow-auto custom-scrollbar">
+                          <table className="w-full text-xs md:text-sm border-collapse">
+                            <thead>
+                              <tr className="bg-amber-100/30">
+                                <th className="p-2 text-left font-bold text-amber-900 border-b-2 border-amber-200 uppercase text-[10px] tracking-wider">Store Name</th>
+                                <th className="p-2 text-center font-bold text-amber-900 border-b-2 border-amber-200 uppercase text-[10px] tracking-wider">No of Feedbacks</th>
+                                <th className="p-2 text-center font-bold text-amber-900 border-b-2 border-amber-200 uppercase text-[10px] tracking-wider">Avg /Day</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {(showAllStores || isExportingPDF ? storeFeedbackStats : storeFeedbackStats.slice(0, 5)).map((store, i) => (
+                                <tr key={i} className="hover:bg-amber-50/30 transition-colors">
+                                  <td className="py-0 font-bold text-gray-800 text-[10px] align-middle">{store.name}</td>
+                                  <td className="py-0 text-center font-black text-pink-600 text-xs align-middle">{store.count.toLocaleString('en-IN')}</td>
+                                  <td className="py-0 text-center font-black text-blue-600 text-xs align-middle">{store.avg.toLocaleString('en-IN')}</td>
+                                </tr>
+                              ))}
+                              {storeFeedbackStats.length === 0 && (
+                                <tr>
+                                  <td colSpan="3" className="p-3 text-center text-gray-400 italic text-[10px]">No store data available</td>
+                                </tr>
+                              )}
+                            </tbody>
+                            {storeFeedbackStats.length > 0 && (
+                              <tfoot className="bg-amber-50/50">
+                                <tr className="border-t-2 border-amber-200">
+                                  <td className="py-0 font-black text-gray-900 uppercase text-[10px] tracking-widest align-middle">Grand Total</td>
+                                  <td className="py-0 text-center font-black text-pink-700 text-sm align-middle">
+                                    {storeFeedbackStats.reduce((sum, s) => sum + s.count, 0).toLocaleString('en-IN')}
+                                  </td>
+                                  <td className="py-0 text-center font-black text-blue-700 text-sm align-middle">
+                                    {ratingStats.totalAvgPerDay.toLocaleString('en-IN')}
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            )}
+                          </table>
+                        </div>
+                        {storeFeedbackStats.length > 9 && !isExportingPDF && (
+                          <button
+                            onClick={() => setShowAllStores(!showAllStores)}
+                            className="w-full py-2 mt-4 text-xs font-bold text-amber-700 hover:bg-amber-50 rounded-lg transition-colors border border-amber-100"
+                          >
+                            {showAllStores ? 'Show Less' : `Show More (${storeFeedbackStats.length})`}
+                          </button>
+                        )}
+                        <div className="mt-4 pt-4 border-t text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          Calculated over {storeFeedbackStats.length > 0 ? (dateFilteredSubmissions.length > 0 ? Math.max(1, Math.ceil((new Date(Math.max(...dateFilteredSubmissions.map(s => new Date(s.timestamp).getTime()))) - new Date(Math.min(...dateFilteredSubmissions.map(s => new Date(s.timestamp).getTime())))) / (1000 * 60 * 60 * 24)) + 1) : 1) : 0} active days
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compact Two-Column Row: Location Wise Analysis */}
+                    <div id="location-wise-card" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-fadeIn">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-bold text-lg flex items-center gap-2 text-gray-800 tracking-tight">
+                          <ShoppingBag size={20} className="text-blue-500" /> Location-wise Top Selected
+                        </h3>
+                        {!isExportingPDF && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setShowLocationDetails(!showLocationDetails)}
+                              className={`p-2 rounded-lg transition-all ${showLocationDetails ? 'bg-pink-100 text-pink-600' : 'text-gray-400 hover:text-pink-600 hover:bg-pink-50'}`}
+                              title="Toggle Store Breakdown"
+                            >
+                              <Menu size={18} />
+                            </button>
+                            <button
+                              onClick={handleDownloadLocationStatsPDF}
+                              className="p-2 text-gray-400 hover:text-pink-600 hover:bg-pink-50 rounded-lg transition-all"
+                              title="Download Location PDF"
+                            >
+                              <Download size={18} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-6">
+                        {(() => {
+                          const statsToRender = showAllLocations || isExportingPDF ? locationStats : locationStats.slice(0, 6);
+
+                          if (!isExportingPDF) {
+                            return (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                                {statsToRender.map((loc, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={() => setDashboardFilter(loc.id)}
+                                    className={`flex flex-col py-3 border-b border-gray-50 hover:bg-blue-50/50 rounded-lg px-2 transition-all cursor-pointer group ${dashboardFilter === loc.id ? 'bg-blue-50/80 border-blue-200' : ''}`}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex flex-col">
+                                        <span className="font-bold text-sm text-gray-900">{loc.name}</span>
+                                        <span className="text-[10px] text-gray-400 uppercase font-semibold">Total: {loc.total.toLocaleString('en-IN')}</span>
+                                      </div>
+                                      <div className="text-right">
+                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[9px] font-bold border border-blue-100 uppercase">
+                                          {loc.topSource}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {showLocationDetails && (
+                                      <div className="mt-2 space-y-1 pl-1 border-l-2 border-blue-100/50 animate-fadeIn">
+                                        {loc.allSources.map(([source, count]) => (
+                                          <div key={source} className="flex justify-between items-center text-[9px] text-gray-500">
+                                            <span className="flex items-center gap-1">
+                                              <div className="w-1 h-1 rounded-full bg-pink-400"></div>
+                                              {source}
+                                            </span>
+                                            <span className="font-bold">{count.toLocaleString('en-IN')} ({Math.round((count / loc.total) * 100)}%)</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          } else {
+                            // Simple single-grid view for PDF to avoid page breaks
+                            return (
+                              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                {statsToRender.map((loc, idx) => (
+                                  <div
+                                    key={idx}
+                                    style={{ breakInside: 'avoid' }}
+                                    className="flex flex-col p-3 bg-gray-50/50 rounded-xl border border-gray-100"
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex flex-col">
+                                        <span className="font-bold text-xs text-gray-900 leading-tight">{loc.name}</span>
+                                        <span className="text-[9px] text-gray-500 uppercase font-bold">Total: {loc.total.toLocaleString('en-IN')}</span>
+                                      </div>
+                                      <div className="text-right">
+                                        <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md text-[8px] font-black border border-blue-200 uppercase">
+                                          {loc.topSource}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-pink-200">
+                                      {loc.allSources.slice(0, 3).map(([source, count]) => ( // Limit to top 3 sources per location for PDF fitting
+                                        <div key={source} className="flex justify-between items-center text-[8px] text-gray-500">
+                                          <span className="font-medium truncate max-w-[80px]">{source}</span>
+                                          <span className="font-bold text-gray-900">{count.toLocaleString('en-IN')}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                        })()}
+                      </div>
+
+                      {locationStats.length > 6 && !isExportingPDF && (
+                        <button
+                          onClick={() => setShowAllLocations(!showAllLocations)}
+                          className="w-full py-2 mt-4 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-blue-50 shadow-sm"
+                        >
+                          {showAllLocations ? 'See Less' : `See All (${locationStats.length} Locations)`}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Full Feedbacks Section - Integrated into Dashboard */}
+                    {!isExportingPDF && (
+                      <div className="animate-fadeIn space-y-6 pt-8 border-t border-gray-200">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                          <h3 className="text-2xl font-bold serif-font text-gray-800">Only "Others" Feedbacks ({totalOthersCount})</h3>
+                          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            {/* Search Input */}
+                            <div className="relative flex-1 md:w-64">
+                              <input
+                                type="text"
+                                placeholder="Search name, phone..."
+                                value={feedbackSearch}
+                                onChange={(e) => { setFeedbackSearch(e.target.value); setCurrentPage(1); }}
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-black outline-none bg-white/80"
+                              />
+                              <MessageSquare size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            </div>
+                            {/* Rating Filters */}
+                            <div className="flex items-center gap-1 bg-white p-1 rounded-lg border text-xs font-semibold">
+                              {['all', 5, 4, 3, 2, 1].map(r => (
+                                <button
+                                  key={r}
+                                  onClick={() => { setFeedbackRatingFilter(r); setCurrentPage(1); }}
+                                  className={`px-3 py-1.5 rounded-md transition-colors ${feedbackRatingFilter === r ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}
+                                >
+                                  {r === 'all' ? 'All' : `${r}★`}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Feedback Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {paginatedSubmissions.map((sub, idx) => (
+                            <div key={idx} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between h-full">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-sm text-gray-900 leading-tight">
+                                    {sub.customerName} <span className="text-gray-400 font-medium text-[10px] ml-1 uppercase">({sub.locationName})</span>
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 font-mono tracking-tight">{sub.phoneNumber}</span>
+                                </div>
+                                <div className={`
+                                flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold
+                                ${parseInt(sub.rating) >= 5 ? 'bg-green-50 text-green-700 border border-green-100' :
+                                    parseInt(sub.rating) >= 4 ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                      parseInt(sub.rating) >= 3 ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' :
+                                        parseInt(sub.rating) >= 2 ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                          'bg-red-50 text-red-700 border border-red-100'}
+                              `}>
+                                  {sub.rating} ★
+                                </div>
+                              </div>
+                              <div className="flex-1 mb-2">
+                                <p className="text-gray-600 italic leading-snug text-xs">
+                                  "{sub.otherDetails || 'No specific comments provided.'}"
+                                </p>
+                              </div>
+                              <div className="flex justify-between items-center text-[9px] text-gray-400 pt-2 border-t border-gray-50 uppercase tracking-widest font-semibold">
+                                <span>via {sub.sourceLabel}</span>
+                                <span>{new Date(sub.timestamp).toLocaleDateString()}</span>
+                              </div>
+                              <button
+                                onClick={() => handleSoftDelete(sub.id)}
+                                className="absolute top-1 right-1 opacity-50 hover:opacity-100 p-1 text-gray-300 hover:text-red-500 transition-opacity"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Empty State */}
+                        {filteredSubmissions.length === 0 && (
+                          <div className="bg-white p-20 rounded-2xl text-center border border-dashed">
+                            <MessageSquare className="mx-auto text-gray-200 mb-4" size={48} />
+                            <h4 className="text-xl font-bold text-gray-400">No feedbacks found</h4>
+                            <p className="text-gray-400">Try adjusting your filters or search query</p>
+                          </div>
+                        )}
+
+                        {/* Pagination - Hide during PDF export */}
+                        {totalPages > 1 && !isExportingPDF && (
+                          <div className="flex justify-center items-center gap-2 py-8">
+                            <button
+                              disabled={currentPage === 1}
+                              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                              className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-gray-50 transition-colors"
+                            >
+                              <ChevronDown size={20} className="rotate-90" />
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                let pageNum;
+                                if (totalPages <= 5) pageNum = i + 1;
+                                else if (currentPage <= 3) pageNum = i + 1;
+                                else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                                else pageNum = currentPage - 2 + i;
+
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`w-10 h-10 rounded-lg border font-bold transition-all ${currentPage === pageNum ? 'bg-black text-white scale-110 shadow-lg' : 'bg-white hover:bg-gray-50'}`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              disabled={currentPage === totalPages}
+                              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                              className="p-2 rounded-lg border bg-white disabled:opacity-30 hover:bg-gray-50 transition-colors"
+                            >
+                              <ChevronDown size={20} className="-rotate-90" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* feedbacks code removed as it is now inside dashboard */}
+                {adminTab === 'settings' && (
+                  <div className="max-w-4xl mx-auto animate-fadeIn space-y-6">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-lg">Add Store Location</h3>
+                        <button onClick={refreshLocations} className="flex items-center gap-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors">
+                          <RefreshCw size={14} /> Refresh List
+                        </button>
+                      </div>
+                      <div className="flex gap-3 mb-6">
+                        <input type="text" value={newLocationName} onChange={e => setNewLocationName(e.target.value)} placeholder="e.g. Hanamkonda" className="flex-1 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-black outline-none" />
+                        <button onClick={() => { if (newLocationName) { addLocation(newLocationName); setNewLocationName(''); } }} className="bg-black text-white px-6 rounded-xl font-medium hover:bg-gray-800 transition-colors">Add</button>
+                      </div>
+                      <div className="overflow-hidden border rounded-xl">
+                        <table className="w-full text-left">
+                          <thead className="bg-gray-50 border-b">
+                            <tr><th className="p-4 text-sm font-semibold text-gray-600">Location Name</th><th className="p-4 text-sm font-semibold text-gray-600 text-right">Action</th></tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {locations.map(loc => (<tr key={loc.id} className="hover:bg-gray-50"><td className="p-4 font-medium">{loc.name}</td><td className="p-4 text-right"><button onClick={() => deleteLocation(loc.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1 ml-auto"><Trash2 size={14} /> Remove</button></td></tr>))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {adminTab === 'reports' && (
+                  <div className="max-w-2xl mx-auto animate-fadeIn"><div className="bg-white p-8 rounded-2xl shadow-sm border"><div className="flex items-center gap-4 mb-6"><div className="p-3 bg-green-100 text-green-700 rounded-xl"><FileText size={24} /></div><div><h3 className="font-bold text-lg">Export CSV Report</h3><p className="text-gray-500 text-sm">Download raw data processed from Google Sheets.</p></div></div><div className="grid grid-cols-2 gap-4 mb-6"><div><label className="block text-sm font-bold mb-2">Start Date</label><input type="date" value={reportStart} onChange={e => setReportStart(e.target.value)} className="w-full border rounded-xl px-4 py-3" /></div><div><label className="block text-sm font-bold mb-2">End Date</label><input type="date" value={reportEnd} onChange={e => setReportEnd(e.target.value)} className="w-full border rounded-xl px-4 py-3" /></div></div><button onClick={() => { if (!reportStart || !reportEnd) return alert("Select dates."); const start = new Date(reportStart).setHours(0, 0, 0, 0); const end = new Date(reportEnd).setHours(23, 59, 59, 999); const data = submissions.filter(s => { const t = new Date(s.timestamp).getTime(); return t >= start && t <= end; }); if (data.length === 0) return alert("No data in range."); downloadCSV(data); }} className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 flex justify-center gap-2"><Download size={20} /> Download CSV</button></div></div>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    };
+
+    // --- MAIN APP ---
+    const App = () => {
+      const [viewMode, setViewMode] = useState('user');
+      const [step, setStep] = useState('location');
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const { locations, addLocation, deleteLocation, refreshLocations } = useLocations();
+      const [selectedLocationId, setSelectedLocationId] = useState('');
+      const [customerName, setCustomerName] = useState('');
+      const [phoneNumber, setPhoneNumber] = useState('');
+      const [selectedDepartmentId, setSelectedDepartmentId] = useState(null);
+      const [questionRatings, setQuestionRatings] = useState({});
+      const [rating, setRating] = useState(null); // Added Rating State
+      const [isSubmitting, setIsSubmitting] = useState(false);
+      const [aiMessage, setAiMessage] = useState('');
+
+      const handleFeedbackSubmit = async () => {
+        if (!customerName.trim()) { alert("Please enter your name!"); return; }
+        if (!phoneNumber.trim()) { alert("Please enter your phone number!"); return; }
+        if (SPECIFIC_QUESTIONS.some(q => !questionRatings[q.id])) { alert("Please rate all questions!"); return; }
+        if (!rating) { alert("Please provide an overall rating!"); return; } // Validate Rating
+
+        if (!selectedDepartmentId || !selectedLocationId) return;
+        setIsSubmitting(true);
+        const loc = locations.find(l => l.id === selectedLocationId);
+        const opt = DEPARTMENT_OPTIONS.find(o => o.id === selectedDepartmentId);
+        const label = opt?.label || 'Unknown';
+
+        const submissionData = {
+          id: Date.now().toString(),
+          customerName: customerName.trim(),
+          phoneNumber: phoneNumber.trim(),
+          locationId: selectedLocationId,
+          locationName: loc?.name || 'Unknown',
+          sourceId: selectedDepartmentId,
+          sourceLabel: label,
+          rating: rating, // Added rating to submission
+          q1: questionRatings['q1'],
+          q2: questionRatings['q2'],
+          q3: questionRatings['q3'],
+          q4: questionRatings['q4'],
+          q5: questionRatings['q5'],
+          timestamp: new Date().toISOString()
+        };
+        await saveToGoogleSheet(submissionData);
+        const msg = await generateThankYouMessage(label);
+        setAiMessage(msg);
+        setIsSubmitting(false);
+        setStep('success');
+      };
+
+      useEffect(() => {
+        if (step === 'success') {
+          const timer = setTimeout(() => {
+            setStep('feedback'); // Return to Feedback Form directly
+            // Location ID is PRESERVED so they don't have to select it again
+            setSelectedDepartmentId(null);
+            setQuestionRatings({});
+            setCustomerName('');
+            setPhoneNumber('');
+            setRating(null);
+            setAiMessage('');
+          }, 3000);
+          return () => clearTimeout(timer);
+        }
+      }, [step]);
+
+      if (viewMode === 'admin') return <AdminPanel isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} setViewMode={setViewMode} locations={locations} addLocation={addLocation} deleteLocation={deleteLocation} refreshLocations={refreshLocations} />;
+
+      if (step === 'success') {
+        return (
+          <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+            <Background />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-0"></div>
+            <div className="glass-panel max-w-lg w-full rounded-3xl p-10 text-center relative z-10 animate-float shadow-2xl">
+              <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6 text-pink-600 shadow-inner">
+                <CheckCircle2 size={40} />
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 serif-font">Thank You!</h2>
+              <div className="h-1 w-20 bg-pink-500 mx-auto mb-6 rounded-full"></div>
+              <p className="text-xl text-gray-700 italic font-medium leading-relaxed mb-8">"{aiMessage}"</p>
+              <button onClick={() => { setStep('feedback'); setSelectedDepartmentId(null); setQuestionRatings({}); setCustomerName(''); setPhoneNumber(''); setRating(null); }} className="text-sm text-black hover:text-black-200 underline">Return to Home</button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen relative font-sans">
+
+          <Background />
+
+          <div className="relative z-50 flex justify-between items-center p-6 container mx-auto max-w-6xl">
+            <Logo />
+            <button onClick={() => setViewMode('admin')} className="p-2 bg-white/50 hover:bg-white rounded-full transition-colors backdrop-blur-md border border-white/40 shadow-sm text-gray-700"><Lock size={18} /></button>
+          </div>
+          <div className="relative z-10 container mx-auto px-4 py-4 md:py-8 max-w-6xl min-h-[80vh] flex flex-col">
+            <header className="text-center mb-10 flex-none">
+              <div className="inline-block p-3 rounded-full bg-white/80 shadow-sm mb-4 backdrop-blur-sm"><span className="text-xs font-bold tracking-widest text-pink-600 uppercase px-2">{step === 'location' ? 'Welcome, Kasam Fashions Private Limted' : locations.find(l => l.id === selectedLocationId)?.name}</span></div>
+              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 serif-font mt-2 leading-tight">{step === 'location' ? <>Select Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">Store Location</span></> : <>Rate our <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">Store Experience</span></>}</h1>
+            </header>
+            {step === 'location' && (
+              <div className="flex-1 flex flex-col items-center justify-center animate-fadeIn pb-20">
+                <div className="w-full max-w-md bg-white/30 backdrop-blur-lg border border-white/50 rounded-3xl p-8 shadow-2xl">
+                  <label className="block text-gray-700 font-semibold mb-4 text-center">Where are you shopping today?</label>
+                  <div className="relative mb-8"><select value={selectedLocationId} onChange={(e) => setSelectedLocationId(e.target.value)} className="w-full appearance-none bg-white/60 border border-white rounded-xl px-6 py-4 text-lg text-gray-800 shadow-sm focus:outline-none focus:ring-4 focus:ring-pink-200 transition-all cursor-pointer"><option value="" disabled>Select a location...</option>{locations.map(loc => (<option key={loc.id} value={loc.id}>{loc.name}</option>))}</select><div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"><ChevronDown size={24} /></div></div>
+                  <button onClick={() => { if (selectedLocationId) { setCustomerName(''); setStep('feedback'); } }} disabled={!selectedLocationId} className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${selectedLocationId ? 'bg-black text-white hover:scale-[1.02] shadow-xl' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Continue <ArrowRight size={20} /></button>
+                </div>
+              </div>
+            )}
+            {step === 'feedback' && (
+              <div className="flex-1 animate-slideUp pb-20">
+                <button onClick={() => setStep('location')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mx-auto md:mx-0"><ArrowRight className="rotate-180" size={16} /> Change Location</button>
+
+                {/* Grid container for Name and Phone inputs */}
+                <div className="max-w-3xl mx-auto mb-8 grid grid-cols-2 gap-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Enter your Name"
+                      className="w-full pl-12 pr-5 py-4 rounded-xl border-2 border-white/50 bg-white/40 backdrop-blur-md focus:border-pink-500 focus:bg-white/80 outline-none transition-all shadow-sm text-lg placeholder-gray-500"
+                      autoFocus
+                    />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={24} />
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="Phone Number"
+                      className="w-full pl-12 pr-5 py-4 rounded-xl border-2 border-white/50 bg-white/40 backdrop-blur-md focus:border-pink-500 focus:bg-white/80 outline-none transition-all shadow-sm text-lg placeholder-gray-500"
+                    />
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={24} />
+                  </div>
+                </div>
+
+                <h3 className="text-2xl font-bold text-center mb-8 mt-2 serif-font text-gray-800">✨ Select the <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">Department</span></h3>
+                <div className={`transition-all duration-500 ${!customerName.trim() || !phoneNumber.trim() ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                  <div className="grid grid-cols-3 gap-2 md:gap-4 lg:gap-6 mb-12">{DEPARTMENT_OPTIONS.map((option) => (<OptionCard key={option.id} option={option} isSelected={selectedDepartmentId === option.id} onClick={() => setSelectedDepartmentId(option.id)} />))}</div>
+                  
+                  {selectedDepartmentId && (
+                    <div className="max-w-3xl mx-auto mb-10">
+                      <h3 className="text-xl font-bold mb-6 text-gray-800 serif-font text-center">Please rate the following:</h3>
+                      <div className="space-y-6">
+                        {SPECIFIC_QUESTIONS.map(q => (
+                          <div key={q.id} className="bg-white/60 p-4 rounded-2xl shadow-sm border border-white/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                            <span className="font-semibold text-gray-700 text-center md:text-left flex-1">{q.text}</span>
+                            <div className="flex gap-2">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <button
+                                  key={star}
+                                  onClick={() => setQuestionRatings(prev => ({ ...prev, [q.id]: star }))}
+                                  className={`text-2xl transition-all ${questionRatings[q.id] >= star ? 'text-yellow-500 scale-110' : 'text-gray-300 hover:text-yellow-300'}`}
+                                >
+                                  ★
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rating Section - Added */}
+                  <div className="max-w-3xl mx-auto mb-10 text-center">
+                    <h3 className="text-xl font-bold mb-6 text-gray-800 serif-font">Rate your Overall Experience</h3>
+                    <div className="flex justify-center gap-4 md:gap-8">
+                      {RATING_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setRating(opt.value)}
+                          className={`
+                                        text-4xl md:text-5xl transition-all duration-300 transform hover:scale-125 focus:outline-none drop-shadow-md
+                                        ${rating === opt.value
+                              ? 'scale-125 drop-shadow-xl'
+                              : 'opacity-80 hover:opacity-100'
+                            }
+                                    `}
+                          title={opt.label}
+                          type="button"
+                        >
+                          {opt.emoji}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-sm font-medium text-pink-600 h-6">
+                      {rating ? RATING_OPTIONS.find(r => r.value === rating)?.label : ''}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center mb-8"><button onClick={handleFeedbackSubmit} disabled={!selectedDepartmentId || isSubmitting || !customerName.trim() || !phoneNumber.trim() || SPECIFIC_QUESTIONS.some(q => !questionRatings[q.id]) || !rating} className={`relative group flex items-center justify-center gap-3 px-10 py-4 rounded-full text-lg font-bold shadow-xl transition-all duration-300 ${(!selectedDepartmentId || !customerName.trim() || !phoneNumber.trim() || SPECIFIC_QUESTIONS.some(q => !questionRatings[q.id]) || !rating) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-black hover:scale-105'}`}>{isSubmitting ? <><Loader2 className="animate-spin" /> Submitting Feedback...</> : <>Submit Feedback <ArrowRight size={20} /></>}</button></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>
